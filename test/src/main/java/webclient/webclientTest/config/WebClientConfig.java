@@ -1,43 +1,25 @@
-package webclient.webclientTest.controller;
+package webclient.webclientTest.config;
 
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-
 import reactor.netty.http.client.HttpClient;
 
+@Configuration
+public class WebClientConfig {
+    private final Logger log = org.slf4j.LoggerFactory.getLogger(getClass());
 
-@RestController
-public class WebClientController {
-
-    private final Logger log = LoggerFactory.getLogger(getClass());
-
-    @Autowired
-    private WebClient webClient;
-
-    @GetMapping("/test")
-    public Mono<String> doTest() {
-        WebClient client = WebClient.create();
-        return client.get()
-                .uri("http://localhost:1111/webclient/test-create")
-                .retrieve()
-                .bodyToMono(String.class);
-    }
-
-    @GetMapping("/test2")
-    public Mono<String> doTest2() {
-
+    @Bean
+    public WebClient webClient() {
         HttpClient httpClient = HttpClient.create()
                 .tcpConfiguration(
                         client -> client.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 3000) //miliseconds
@@ -52,7 +34,7 @@ public class WebClientController {
                 .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(2*1024*1024))
                 .build();
 
-        WebClient client = WebClient.builder()
+        return WebClient.builder()
                 .baseUrl("http://localhost:1111")
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .filter(
@@ -82,20 +64,8 @@ public class WebClientController {
                         )
                 )
                 .exchangeStrategies(exchangeStrategies)
+                .defaultHeader("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.87 Safari/537.3")
+                .defaultCookie("httpclient-type", "webclient")
                 .build();
-
-        return client.get()
-                .uri("/webclient/test-builder")
-                .retrieve()
-                .bodyToMono(String.class);
     }
-
-    @GetMapping("/test3")
-    public Mono<String> doTest3() {
-        return webClient.get()
-                .uri("/webclient/test-builder")
-                .retrieve()
-                .bodyToMono(String.class);
-    }
-
 }
